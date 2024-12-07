@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,65 @@ import (
 	"strings"
 )
 
-var _ = fmt.Fprint
+var (
+	ErrNotFound    = errors.New("Error not found")
+	ErrInvalidPath = errors.New("Invalid Path")
+)
+
+type Repl struct {
+	commandMap  map[string]CommandHandler
+	currentPath string
+	running     bool
+}
+
+type Command struct {
+	handler CommandHandler
+	command string
+}
+
+func initRepl(cmdMap map[string]CommandHandler) *Repl {
+	dir, err := getWorkingDirectory()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &Repl{
+		running:     true,
+		commandMap:  cmdMap,
+		currentPath: dir,
+	}
+}
+
+func (r *Repl) changeCurrentPath(newPath string) {
+	r.currentPath = newPath
+}
+
+func (repl *Repl) stop() {
+	repl.running = false
+}
+
+func (repl *Repl) setCommands(cmdMap map[string]CommandHandler) {
+	repl.commandMap = cmdMap
+}
+
+func initCommands() []Command {
+	return []Command{
+		{handler: handleEcho, command: "echo"},
+		{handler: handleExit, command: "exit"},
+		{handler: handleType, command: "type"},
+		{handler: handlePwd, command: "pwd"},
+		{handler: handleCd, command: "cd"},
+	}
+}
+
+type CommandHandler func(r *Repl, arguments []string)
+
+func getWorkingDirectory() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return dir, nil
+}
 
 func parseInput(input string) []string {
 	var args []string
@@ -77,20 +136,20 @@ func main() {
 			log.Fatalln(err.Error())
 		}
 
-		input = strings.Trim(input, "\n")
+        input = strings.TrimSpace(input)
 
-		if input == "exit 0" {
-			os.Exit(0)
-		}
+        if input == "exit 0" {
+            os.Exit(0)
+        }
 
-		args := parseInput(input)
+        parts := parseInput(input)
 
-		if len(args) == 0 {
-			continue
-		}
+        if len(parts) == 0 {
+            continue
+        }
 
-		command := args[0]
-        args = args[1:]
+        command := parts[0]
+        args := parts[1:]
 
         switch command {
         case "cd":
@@ -109,9 +168,9 @@ func main() {
         case "pwd":
             absWdPath, err := os.Getwd()
             if err != nil {
-                os.Exit(0)
+                log.Fatal(err)
             }
-            os.Stdout.Write([]byte(absWdPath + "\n"))
+            fmt.Println(absWdPath)
         case "echo":
             fmt.Println(strings.Join(args, " "))
         case "type":
@@ -152,3 +211,29 @@ func main() {
         }
     }
 }
+
+// Handle echo command with preserved arguments.
+func handleEcho(_ *Repl, arguments []string) {
+	echoStr := ""
+	if len(arguments) >= 1 {
+	    echoStr = strings.Join(arguments, " ") + "\n"
+    }
+	fmt.Fprintf(os.Stdout, "%s", echoStr)
+}
+
+// Handle exit command.
+func handleExit(r *Repl, arguments []string) {
+	if len(arguments) < 1 { return }
+	if arguments[0] == "0" { r.stop() }
+}
+
+// Handle type command.
+func handleType(r *Repl, arguments []string) { /* Implementation here */ }
+
+// Handle pwd command.
+func handlePwd(r *Repl, _ []string) { /* Implementation here */ }
+
+// Handle cd command.
+func handleCd(r *Repl, args []string) { /* Implementation here */ }
+
+// Other helper functions can be added as needed.
