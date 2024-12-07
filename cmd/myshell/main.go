@@ -41,22 +41,21 @@ func main() {
 			continue // Ignore empty commands
 		}
 
-		// Split the command into name and arguments
-		args := strings.Fields(command)
-		cmdName := args[0]
+		// Split the command into name and arguments, handling single quotes
+		cmdName, args := parseCommand(command)
 
 		if cmdName == "exit" {
 			exitCode := 0 // Default exit code
-			if len(args) > 1 {
-				fmt.Sscanf(args[1], "%d", &exitCode) // Get exit code if provided
+			if len(args) > 0 {
+				fmt.Sscanf(args[0], "%d", &exitCode) // Get exit code if provided
 			}
 			os.Exit(exitCode) // Exit with the specified code
 		}
 
-		if cmdName == "echo" {
-			handleEcho(args[1:]) // Handle echo command
-			continue
-		}
+        if cmdName == "echo" {
+            handleEcho(args) // Handle echo command
+            continue
+        }
 
         if cmdName == "pwd" {
             handlePwd() // Handle pwd command
@@ -64,20 +63,44 @@ func main() {
         }
 
         if cmdName == "cd" {
-            handleCd(args[1:]) // Handle cd command
+            handleCd(args) // Handle cd command
             continue
         }
 
         if cmdName == "type" {
-            handleType(args[1:]) // Handle type command
+            handleType(args) // Handle type command
             continue
         }
 
         // Execute external commands and handle errors.
-        if err := executeExternalCommand(cmdName, args[1:]); err != nil {
+        if err := executeExternalCommand(cmdName, args); err != nil {
             fmt.Printf("%s: %s\n", cmdName, err.Error())
         }
     }
+}
+
+// parseCommand splits the command string into the command name and arguments,
+// handling single quotes for literal values.
+func parseCommand(input string) (string, []string) {
+	var cmdName string
+	var args []string
+
+	if strings.Contains(input, "'") {
+		input = strings.ReplaceAll(input, "'", "\"") // Temporarily replace single quotes with double quotes for splitting.
+	}
+
+	fields := strings.Fields(input)
+	if len(fields) > 0 {
+	    cmdName = fields[0]
+	    args = fields[1:]
+	    for i := range args {
+	        if strings.HasPrefix(args[i], "\"") && strings.HasSuffix(args[i], "\"") { 
+	            args[i] = strings.Trim(args[i], "\"") // Remove surrounding double quotes if present.
+	        }
+	    }
+    }
+
+	return cmdName, args
 }
 
 // handleEcho prints the provided arguments as a single string.
