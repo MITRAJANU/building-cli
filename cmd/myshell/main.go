@@ -160,7 +160,7 @@ func handleEcho(args []string) {
 
 	for i, arg := range args {
 		for j := 0; j < len(arg); j++ {
-			if arg[j] == '\\' && j+1 < len(arg) {
+			if arg[j] == '\\' {
 				// Write the backslash itself.
 				output.WriteByte(arg[j])
 				j++ // Move to the next character.
