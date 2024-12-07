@@ -41,7 +41,7 @@ func main() {
 			continue // Ignore empty commands
 		}
 
-		// Split the command into name and arguments, handling single quotes
+		// Split the command into name and arguments, handling quotes
 		cmdName, args := parseCommand(command)
 
 		if cmdName == "exit" {
@@ -80,26 +80,32 @@ func main() {
 }
 
 // parseCommand splits the command string into the command name and arguments,
-// handling single quotes for literal values.
+// handling both single and double quotes for literal values.
 func parseCommand(input string) (string, []string) {
 	var cmdName string
 	var args []string
 
 	var currentArg strings.Builder
-	inSingleQuote := false
+	inDoubleQuote := false
 
 	for _, char := range input {
 	    switch char {
-	    case '\'':
-	        inSingleQuote = !inSingleQuote // Toggle single quote state.
+	    case '"':
+	        inDoubleQuote = !inDoubleQuote // Toggle double quote state.
 	    case ' ':
-	        if inSingleQuote { // If inside quotes, keep adding spaces to current argument.
+	        if inDoubleQuote { // If inside quotes, keep adding spaces to current argument.
 	            currentArg.WriteRune(char)
 	        } else { // If outside quotes, finalize current argument.
 	            if currentArg.Len() > 0 {
 	                args = append(args, currentArg.String())
 	                currentArg.Reset()
 	            }
+	        }
+	    case '\\':
+	        if inDoubleQuote { // If inside double quotes, treat backslash as escape for next character.
+	            currentArg.WriteRune(char) // Add backslash to current argument.
+	        } else {
+	            currentArg.WriteRune(char) // Add backslash literally when outside quotes.
 	        }
 	    default:
 	        currentArg.WriteRune(char) // Add character to current argument.
