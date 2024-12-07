@@ -61,11 +61,11 @@ func main() {
 			continue
 		}
 
-		// Execute other commands and handle errors
-		if err := executeCommand(cmdName, args[1:]); err != nil {
-			fmt.Printf("%s: %s\n", cmdName, err.Error())
-		}
-	}
+        // Execute external commands and handle errors
+        if err := executeExternalCommand(cmdName, args[1:]); err != nil {
+            fmt.Printf("%s: %s\n", cmdName, err.Error())
+        }
+    }
 }
 
 // handleEcho prints the provided arguments as a single string
@@ -76,15 +76,15 @@ func handleEcho(args []string) {
 // handleType determines how a command would be interpreted and prints the result
 func handleType(args []string) {
 	if len(args) == 0 {
-		fmt.Println("type: missing argument")
-		return
-	}
+        fmt.Println("type: missing argument")
+        return
+    }
 
-	for _, arg := range args {
-		if desc, exists := builtins[arg]; exists {
-			fmt.Printf("%s %s\n", arg, desc)
-			continue
-		}
+    for _, arg := range args {
+        if desc, exists := builtins[arg]; exists {
+            fmt.Printf("%s %s\n", arg, desc)
+            continue
+        }
 		
         // Check if it's an executable in PATH
         path, found := findExecutable(arg)
@@ -98,14 +98,11 @@ func handleType(args []string) {
 
 // findExecutable searches for an executable in the directories listed in PATH.
 func findExecutable(cmd string) (string, bool) {
-	pathEnv := os.Getenv("PATH")
-	directories := strings.Split(pathEnv, ":")
+    pathEnv := os.Getenv("PATH")
+    directories := strings.Split(pathEnv, ":")
 
-	for _, dir := range directories {
-        // Construct full path for the executable
+    for _, dir := range directories {
         fullPath := filepath.Join(dir, cmd)
-        
-        // Check if it exists and is executable
         if _, err := os.Stat(fullPath); err == nil {
             return fullPath, true // Found executable
         }
@@ -113,12 +110,21 @@ func findExecutable(cmd string) (string, bool) {
     return "", false // Not found
 }
 
-// executeCommand runs the specified command with arguments and returns an error if it fails.
-func executeCommand(cmdName string, args []string) error {
-	cmd := exec.Command(cmdName, args...)
-	err := cmd.Run()
-	if err != nil {
-	    return fmt.Errorf("command not found")
+// executeExternalCommand runs an external command with arguments and captures its output.
+func executeExternalCommand(cmdName string, args []string) error {
+    cmdPath, found := findExecutable(cmdName)
+    if !found {
+        return fmt.Errorf("command not found")
     }
+
+    cmd := exec.Command(cmdPath, args...) // Create command with path and arguments
+
+    // Capture output from the command
+    output, err := cmd.Output()
+    if err != nil {
+        return fmt.Errorf("error executing command: %v", err)
+    }
+
+    fmt.Print(string(output)) // Print the output of the command
     return nil
 }
