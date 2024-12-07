@@ -11,6 +11,13 @@ import (
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Fprint
 
+// List of built-in commands
+var builtins = map[string]string{
+	"echo": "is a shell builtin",
+	"exit": "is a shell builtin",
+	"type": "is a shell builtin",
+}
+
 func main() {
 	for {
 		// Prompt for user input
@@ -48,6 +55,11 @@ func main() {
 			continue
 		}
 
+		if cmdName == "type" {
+			handleType(args[1:]) // Handle type command
+			continue
+		}
+
 		// Execute other commands and handle errors
 		if err := executeCommand(cmdName, args[1:]); err != nil {
 			fmt.Printf("%s: %s\n", cmdName, err.Error())
@@ -58,6 +70,22 @@ func main() {
 // handleEcho prints the provided arguments as a single string
 func handleEcho(args []string) {
 	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print
+}
+
+// handleType determines how a command would be interpreted and prints the result
+func handleType(args []string) {
+	if len(args) == 0 {
+		fmt.Println("type: missing argument")
+		return
+	}
+
+	for _, arg := range args {
+		if desc, exists := builtins[arg]; exists {
+			fmt.Printf("%s %s\n", arg, desc)
+		} else {
+			fmt.Printf("%s: not found\n", arg)
+		}
+	}
 }
 
 // executeCommand runs the specified command with arguments and returns an error if it fails
