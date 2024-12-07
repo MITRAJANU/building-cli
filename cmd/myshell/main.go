@@ -163,6 +163,10 @@ func handleEcho(args []string) {
 			if arg[j] == '\\' && j+1 < len(arg) {
 				// Handle escaped characters.
 				output.WriteByte(arg[j]) // Write the backslash itself.
+				j++ // Skip the next character as it's escaped.
+				if j < len(arg) {
+					output.WriteByte(arg[j]) // Write the escaped character.
+				}
 			} else {
 				output.WriteByte(arg[j]) // Write the current character.
 			}
@@ -174,7 +178,6 @@ func handleEcho(args []string) {
 
 	fmt.Println(output.String())
 }
-
 
 // handlePwd prints the current working directory.
 func handlePwd() {
