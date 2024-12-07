@@ -84,48 +84,66 @@ func main() {
 func parseCommand(input string) (string, []string) {
 	var cmdName string
 	var args []string
-
 	var currentArg strings.Builder
 	inSingleQuote := false
 	inDoubleQuote := false
+	escaped := false
 
 	for _, char := range input {
-	    switch char {
-	    case '\'':
-	        inSingleQuote = !inSingleQuote // Toggle single quote state.
-	    case '"':
-	        inDoubleQuote = !inDoubleQuote // Toggle double quote state.
-	    case ' ':
-	        if inSingleQuote || inDoubleQuote { // If inside any quotes, keep adding spaces to current argument.
-	            currentArg.WriteRune(char)
-	        } else { // If outside quotes, finalize current argument.
-	            if currentArg.Len() > 0 {
-	                args = append(args, currentArg.String())
-	                currentArg.Reset()
-	            }
-	        }
-	    case '\\':
-	        if inDoubleQuote { // If inside double quotes, treat backslash as escape for next character.
-	            currentArg.WriteRune(char) // Add backslash to current argument.
-	        } else if inSingleQuote { 
-	            currentArg.WriteRune(char) // Add backslash literally when inside single quotes.
-	        }
-	    default:
-	        currentArg.WriteRune(char) // Add character to current argument.
-	    }
+		switch char {
+		case '\\':
+			if escaped {
+				currentArg.WriteRune(char) // Add literal backslash
+				escaped = false
+			} else {
+				escaped = true // Escape the next character
+			}
+		case '\'':
+			if escaped {
+				currentArg.WriteRune(char) // Add literal single quote
+				escaped = false
+			} else if inDoubleQuote {
+				currentArg.WriteRune(char) // Add literal single quote in double quotes
+			} else {
+				inSingleQuote = !inSingleQuote // Toggle single-quote state
+			}
+		case '"':
+			if escaped {
+				currentArg.WriteRune(char) // Add literal double quote
+				escaped = false
+			} else if inSingleQuote {
+				currentArg.WriteRune(char) // Add literal double quote in single quotes
+			} else {
+				inDoubleQuote = !inDoubleQuote // Toggle double-quote state
+			}
+		case ' ':
+			if escaped || inSingleQuote || inDoubleQuote {
+				currentArg.WriteRune(char) // Treat space literally in quotes or when escaped
+				escaped = false
+			} else {
+				if currentArg.Len() > 0 { // End of an argument
+					args = append(args, currentArg.String())
+					currentArg.Reset()
+				}
+			}
+		default:
+			currentArg.WriteRune(char) // Add regular character
+			escaped = false
+		}
 	}
 
-	if currentArg.Len() > 0 { // Add last argument if exists.
-	    args = append(args, currentArg.String())
+	if currentArg.Len() > 0 { // Add last argument if it exists
+		args = append(args, currentArg.String())
 	}
 
 	if len(args) > 0 {
-	    cmdName = args[0]
-	    args = args[1:] // Remove command name from arguments.
+		cmdName = args[0]
+		args = args[1:] // Remove command name from arguments
 	}
 
 	return cmdName, args
 }
+
 
 // handleEcho prints the provided arguments as a single string.
 func handleEcho(args []string) {
