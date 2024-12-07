@@ -85,20 +85,35 @@ func parseCommand(input string) (string, []string) {
 	var cmdName string
 	var args []string
 
-	if strings.Contains(input, "'") {
-		input = strings.ReplaceAll(input, "'", "\"") // Temporarily replace single quotes with double quotes for splitting.
+	var currentArg strings.Builder
+	inSingleQuote := false
+
+	for _, char := range input {
+	    switch char {
+	    case '\'':
+	        inSingleQuote = !inSingleQuote // Toggle single quote state.
+	    case ' ':
+	        if inSingleQuote { // If inside quotes, keep adding spaces to current argument.
+	            currentArg.WriteRune(char)
+	        } else { // If outside quotes, finalize current argument.
+	            if currentArg.Len() > 0 {
+	                args = append(args, currentArg.String())
+	                currentArg.Reset()
+	            }
+	        }
+	    default:
+	        currentArg.WriteRune(char) // Add character to current argument.
+	    }
 	}
 
-	fields := strings.Fields(input)
-	if len(fields) > 0 {
-	    cmdName = fields[0]
-	    args = fields[1:]
-	    for i := range args {
-	        if strings.HasPrefix(args[i], "\"") && strings.HasSuffix(args[i], "\"") { 
-	            args[i] = strings.Trim(args[i], "\"") // Remove surrounding double quotes if present.
-	        }
-	    }
-    }
+	if currentArg.Len() > 0 { // Add last argument if exists.
+	    args = append(args, currentArg.String())
+	}
+
+	if len(args) > 0 {
+	    cmdName = args[0]
+	    args = args[1:] // Remove command name from arguments.
+	}
 
 	return cmdName, args
 }
