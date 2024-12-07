@@ -24,10 +24,7 @@ func main() {
 
 		s = strings.Trim(s, "\r\n")
 
-		var command string
-		var args []string
-
-		command, args = parseCommand(s)
+		command, args := parseCommand(s)
 
 		switch command {
 		case "cd":
@@ -47,63 +44,45 @@ func main() {
 }
 
 func parseCommand(input string) (string, []string) {
-	command, argstr, _ := strings.Cut(input, " ")
-	var singleQuote, doubleQuote, backslash bool
-	var arg string
+	var command string
 	var args []string
 
-	for _, r := range argstr {
-		switch r {
-		case '\'':
-			if backslash && doubleQuote {
-				arg += "\\"
-			}
-			if backslash || doubleQuote {
-				arg += string(r)
-			} else {
-				singleQuote = !singleQuote
-			}
-			backslash = false
-
-		case '"':
-			if backslash || singleQuote {
-				arg += string(r)
-			} else {
-				doubleQuote = !doubleQuote
-			}
-			backslash = false
-
-		case '\\':
-			if backslash || singleQuote {
-				arg += string(r)
-				backslash = false
-			} else {
-				backslash = true
-			}
-
-		case ' ':
-			if backslash && doubleQuote {
-				arg += "\\"
-			}
-			if backslash || singleQuote || doubleQuote {
-				arg += string(r)
-			} else if arg != "" {
-				args = append(args, arg)
-				arg = ""
-			}
-			backslash = false
-
-		default:
-			if doubleQuote && backslash {
-				arg += "\\"
-			}
-			arg += string(r)
-			backslash = false
-		}
+	if strings.HasPrefix(input, "'") || strings.HasPrefix(input, "\"") {
+		input = strings.Trim(input, "'\"")
 	}
 
-	if arg != "" {
-		args = append(args, arg)
+	commandEnd := strings.IndexAny(input, " ")
+	if commandEnd == -1 {
+		command = input
+	} else {
+		command = input[:commandEnd]
+		argstr := input[commandEnd+1:]
+
+		var singleQuote, doubleQuote bool
+		var arg string
+
+		for i := 0; i < len(argstr); i++ {
+			r := rune(argstr[i])
+			switch r {
+			case '\'':
+				singleQuote = !singleQuote
+			case '"':
+				doubleQuote = !doubleQuote
+			case ' ':
+				if singleQuote || doubleQuote {
+					arg += string(r)
+				} else if arg != "" {
+					args = append(args, arg)
+					arg = ""
+				}
+			default:
+				arg += string(r)
+			}
+		}
+
+		if arg != "" {
+			args = append(args, arg)
+		}
 	}
 
 	return command, args
