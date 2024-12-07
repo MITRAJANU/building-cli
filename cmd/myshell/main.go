@@ -28,17 +28,16 @@ func main() {
 
 		// Check if the command is empty
 		if command == "" {
-			fmt.Println("ERROR: Command cannot be empty")
-			continue
+			continue // Ignore empty commands
 		}
 
 		// Split the command into name and arguments
 		args := strings.Fields(command)
 		cmdName := args[0]
 		
-		// Execute the command
+		// Execute the command and handle errors
 		if err := executeCommand(cmdName, args[1:]); err != nil {
-			fmt.Println("ERROR:", err)
+			fmt.Printf("%s: %s\n", cmdName, err.Error())
 		}
 	}
 }
@@ -48,7 +47,7 @@ func executeCommand(cmdName string, args []string) error {
 	cmd := exec.Command(cmdName, args...)
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("%s: %v", cmdName, err)
+		return fmt.Errorf("command not found")
 	}
 	return nil
 }
