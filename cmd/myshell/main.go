@@ -1,194 +1,293 @@
 package main
 
 import (
+
 	"bufio"
-	"errors"
+
 	"fmt"
+
 	"log"
+
 	"os"
+
 	"os/exec"
+
 	"path/filepath"
-	"regexp"
+
+	"slices"
+
 	"strings"
+
 )
 
-var (
-	ErrNotFound    = errors.New("Error not found")
-	ErrInvalidPath = errors.New("Invalid Path")
-)
+var _ = fmt.Fprint
 
-type Repl struct {
-	commandMap  map[string]CommandHandler
-	currentPath string
-	running     bool
-}
+func parseInput(input string) []string {
 
-type Command struct {
-	handler CommandHandler
-	command string
-}
-
-func initRepl(cmdMap map[string]CommandHandler) *Repl {
-	dir, err := getWorkingDirectory()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &Repl{
-		running:     true,
-		commandMap:  cmdMap,
-		currentPath: dir,
-	}
-}
-
-func (r *Repl) changeCurrentPath(newPath string) {
-	r.currentPath = newPath
-}
-
-func (repl *Repl) stop() {
-	repl.running = false
-}
-
-func (repl *Repl) setCommands(cmdMap map[string]CommandHandler) {
-	repl.commandMap = cmdMap
-}
-
-func initCommands() []Command {
-	return []Command{
-		{handler: handleEcho, command: "echo"},
-		{handler: handleExit, command: "exit"},
-		{handler: handleType, command: "type"},
-		{handler: handlePwd, command: "pwd"},
-		{handler: handleCd, command: "cd"},
-	}
-}
-
-type CommandHandler func(r *Repl, arguments []string)
-
-func getWorkingDirectory() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return dir, nil
-}
-
-func parseCommand(commandStr string) (string, []string) {
-	var cmdName string
 	var args []string
-
-	inSingleQuote := false
-	inDoubleQuote := false
 
 	var currentArg strings.Builder
 
-	for i, character := range commandStr {
-		char := string(character)
+	inSingleQuotes := false
 
-		if char == "'" && !inDoubleQuote {
-			inSingleQuote = !inSingleQuote // Toggle single quote state
-			if !inSingleQuote { // If closing single quote, add argument to args
-				args = append(args, currentArg.String())
-				currentArg.Reset()
-			}
+	inDoubleQuotes := false
+
+	escapeCh := false
+
+	for _, char := range input {
+
+		if escapeCh {
+
+			currentArg.WriteRune(char)
+
+			escapeCh = false
+
 			continue
-		} else if char == "\"" && !inSingleQuote {
-			inDoubleQuote = !inDoubleQuote // Toggle double quote state
-			if !inDoubleQuote { // If closing double quote, add argument to args
-				args = append(args, currentArg.String())
-				currentArg.Reset()
-			}
-			continue
-		} else if char == "\\" && inSingleQuote { // Preserve backslash in single quotes
-			currentArg.WriteString(char)
-			continue
+
 		}
 
-		if char == " " && !inSingleQuote && !inDoubleQuote { // Split on spaces if not in quotes
-			if currentArg.Len() > 0 {
-				args = append(args, currentArg.String())
-				currentArg.Reset()
+		switch char {
+
+		case '\\':
+
+			if inSingleQuotes {
+
+				currentArg.WriteRune(char) // Literal backslash in single quotes
+
+			} else {
+
+				escapeCh = true // Escape next character
+
+				// Within double code, add backslash character
+
+				if inDoubleQuotes {
+
+					currentArg.WriteRune(char)
+
+				}
+
 			}
-			continue
+
+		case '\'':
+
+			if !inDoubleQuotes {
+
+				inSingleQuotes = !inSingleQuotes // Toggle single-quote mode
+
+			} else {
+
+				currentArg.WriteRune(char)
+
+			}
+
+		case '"':
+
+			if !inSingleQuotes {
+
+				inDoubleQuotes = !inDoubleQuotes // Toggle double-quote mode
+
+			} else {
+
+				currentArg.WriteRune(char)
+
+			}
+
+		case ' ':
+
+			if inSingleQuotes || inDoubleQuotes {
+
+				currentArg.WriteRune(char) // Space inside quotes is part of the argument
+
+			} else if currentArg.Len() > 0 {
+
+				args = append(args, currentArg.String()) // End of argument
+
+				currentArg.Reset()
+
+			}
+
+		default:
+
+			currentArg.WriteRune(char) // Add character to the current argument
+
 		}
 
-		currentArg.WriteString(char) // Add character to current argument
 	}
 
-	if currentArg.Len() > 0 { // Add last argument if exists after loop ends
-		args = append(args, currentArg.String())
+	if currentArg.Len() > 0 {
+
+		args = append(args, currentArg.String()) // Add final argument
+
 	}
 
-	if len(args) > 0 {
-		cmdName = args[0] // The first element is the command name
-		args = args[1:]   // The rest are arguments
-	}
+	return args
 
-	return cmdName, args
-}
-
-func findExecutableFile(directory string, fileName string) (string, error) {
-	files, err := os.ReadDir(directory)
-	if err != nil {
-		return "", err
-	}
-	for _, file := range files {
-		if file.IsDir() {
-			continue // Skip directories for this simple example
-		}
-		
-        filePath := filepath.Join(directory, file.Name())
-        if file.Name() != fileName {
-            continue 
-        }
-
-        info, err := os.Stat(filePath)
-        if err != nil || info.Mode().Perm()&0o111 == 0 { 
-            continue 
-        }
-
-        return filePath, nil 
-    }
-    return "", ErrNotFound 
 }
 
 func main() {
-    commands := initCommands()
-    cmdMap := make(map[string]CommandHandler)
-    for _, cmd := range commands {
-        cmdMap[cmd.command] = cmd.handler 
-    }
-    
-    repl := initRepl(cmdMap)
 
-    for repl.running {
-        fmt.Fprint(os.Stdout, "$ ")
+	builtInCmds := []string{"echo", "exit", "type", "pwd", "cd"}
 
-        commandStr, err := bufio.NewReader(os.Stdin).ReadString('\n')
-        if err != nil {
-            log.Fatalf("Error: %e", err)
-        }
+	for {
 
-        commandStr = strings.TrimSpace(commandStr)
+		fmt.Fprint(os.Stdout, "$ ")
 
-        command, args := parseCommand(commandStr)
+		// Wait for user input
 
-        handler, ok := cmdMap[command]
-        if !ok {
-            fmt.Fprintf(os.Stdout, "%s: not found\n", command)
-            continue 
-        }
+		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 
-        handler(repl, args)
-    }
+		if err != nil {
+
+			log.Fatalln(err.Error())
+
+		}
+
+		// Raw user input
+
+		input = strings.Trim(input, "\n")
+
+		if input == "exit 0" {
+
+			os.Exit(0)
+
+		}
+
+		parts := parseInput(input)
+
+		if len(parts) == 0 {
+
+			continue
+
+		}
+
+		// Shell command
+
+		command := parts[0]
+
+		args := parts[1:]
+
+		switch command {
+
+		case "cd":
+
+			// Get dir path
+
+			if len(args) == 0 {
+
+				fmt.Println("cd: missing argument")
+
+				continue
+
+			}
+
+			dirPath := args[0]
+
+			if dirPath == "~" {
+
+				dirPath = os.Getenv("HOME")
+
+			}
+
+			err := os.Chdir(dirPath)
+
+			if err != nil {
+
+				fmt.Printf("cd: %s: No such file or directory\n", dirPath)
+
+			}
+
+		case "pwd":
+
+			absWdPath, err := os.Getwd()
+
+			if err != nil {
+
+				os.Exit(0)
+
+			}
+
+			os.Stdout.Write([]byte(absWdPath + "\n"))
+
+		case "echo":
+
+			// Add new line character
+
+			fmt.Println(strings.Join(args, " "))
+
+		case "type":
+
+			args := parts[1]
+
+			paths := strings.Split(os.Getenv("PATH"), ":")
+
+			foundedPath := ""
+
+			if isContain := slices.Contains(builtInCmds, args); isContain {
+
+				fmt.Printf("%s is a shell builtin\n", args)
+
+			} else {
+
+				for _, path := range paths {
+
+					fp := filepath.Join(path, args)
+
+					fileInfo, err := os.Stat(fp)
+
+					if err != nil {
+
+						continue
+
+					}
+
+					if fileInfo.Name() == args {
+
+						foundedPath = fp
+
+						break
+
+					}
+
+				}
+
+				if foundedPath != "" {
+
+					fmt.Printf("%s is %s\n", args, foundedPath)
+
+				} else {
+
+					fmt.Printf("%s: not found\n", args)
+
+				}
+
+			}
+
+		default:
+
+			// removedSingleQuoteArr := removeSingleQuote(parts[1:], "'")
+
+			execCmd := exec.Command(command, args...)
+
+			// Define how to handle error, input and output for external executable packages
+
+			execCmd.Stderr = os.Stderr
+
+			execCmd.Stdin = os.Stdin
+
+			execCmd.Stdout = os.Stdout
+
+			// Execute external program here
+
+			err := execCmd.Run()
+
+			if err != nil {
+
+				fmt.Printf("%s: command not found\n", command)
+
+			}
+
+		}
+
+	}
+
 }
-
-// Handle echo command with preserved arguments.
-func handleEcho(_ *Repl, arguments []string) {
-	echoStr := ""
-	if len(arguments) >= 1 {
-	    echoStr = strings.Join(arguments, " ") + "\n"
-    }
-	fmt.Fprintf(os.Stdout, "%s", echoStr)
-}
-
-// Other handlers (handleExit, handleType etc.) remain unchanged.
