@@ -161,11 +161,11 @@ func handleEcho(args []string) {
 	for i, arg := range args {
 		for j := 0; j < len(arg); j++ {
 			if arg[j] == '\\' && j+1 < len(arg) {
-				// Handle escaped characters.
-				output.WriteByte(arg[j]) // Write the backslash itself.
-				j++ // Skip the next character as it's escaped.
+				// Write the backslash itself.
+				output.WriteByte(arg[j])
+				j++ // Move to the next character.
 				if j < len(arg) {
-					output.WriteByte(arg[j]) // Write the escaped character.
+					output.WriteByte(arg[j]) // Write the next character as well.
 				}
 			} else {
 				output.WriteByte(arg[j]) // Write the current character.
