@@ -145,6 +145,7 @@ func parseCommand(input string) (string, []string) {
 }
 
 
+
 // handleEcho prints the provided arguments as a single string.
 func handleEcho(args []string) {
 	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print.
