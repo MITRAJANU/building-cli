@@ -135,8 +135,7 @@ func parseCommand(input string) (string, []string) {
 		}
 	}
 
-	// Handle any leftover escape character
-	if escaped {
+	if escaped { // Handle any leftover escape character at the end of input
 		currentArg.WriteRune('\\')
 	}
 
