@@ -92,6 +92,8 @@ func parseCommand(input string) (string, []string) {
 	    switch char {
 	    case '"':
 	        inDoubleQuote = !inDoubleQuote // Toggle double quote state.
+		case '':
+	        inDoubleQuote = !inDoubleQuote // Toggle double quote state.	
 	    case ' ':
 	        if inDoubleQuote { // If inside quotes, keep adding spaces to current argument.
 	            currentArg.WriteRune(char)
