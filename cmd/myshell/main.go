@@ -156,8 +156,25 @@ func parseCommand(input string) (string, []string) {
 
 // handleEcho prints the provided arguments as a single string.
 func handleEcho(args []string) {
-	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print.
+	var output strings.Builder
+
+	for i, arg := range args {
+		for j := 0; j < len(arg); j++ {
+			if arg[j] == '\\' && j+1 < len(arg) {
+				// Handle escaped characters.
+				output.WriteByte(arg[j]) // Write the backslash itself.
+			} else {
+				output.WriteByte(arg[j]) // Write the current character.
+			}
+		}
+		if i < len(args)-1 {
+			output.WriteByte(' ') // Add a space between arguments.
+		}
+	}
+
+	fmt.Println(output.String())
 }
+
 
 // handlePwd prints the current working directory.
 func handlePwd() {
