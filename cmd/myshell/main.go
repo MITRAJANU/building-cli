@@ -178,7 +178,6 @@ func handleEcho(args []string) {
 
 	fmt.Println(output.String())
 }
-
 // handlePwd prints the current working directory.
 func handlePwd() {
 	dir, err := os.Getwd() // Get current working directory.
