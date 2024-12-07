@@ -17,6 +17,7 @@ var builtins = map[string]string{
 	"echo": "is a shell builtin",
 	"exit": "is a shell builtin",
 	"type": "is a shell builtin",
+	"pwd":  "is a shell builtin",
 }
 
 func main() {
@@ -56,10 +57,15 @@ func main() {
 			continue
 		}
 
-		if cmdName == "type" {
-			handleType(args[1:]) // Handle type command
-			continue
-		}
+        if cmdName == "pwd" {
+            handlePwd() // Handle pwd command
+            continue
+        }
+
+        if cmdName == "type" {
+            handleType(args[1:]) // Handle type command
+            continue
+        }
 
         // Execute external commands and handle errors
         if err := executeExternalCommand(cmdName, args[1:]); err != nil {
@@ -73,7 +79,17 @@ func handleEcho(args []string) {
 	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print
 }
 
-// handleType determines how a command would be interpreted and prints the result
+// handlePwd prints the current working directory.
+func handlePwd() {
+	dir, err := os.Getwd() // Get current working directory
+	if err != nil {
+        fmt.Fprintln(os.Stderr, "Error getting current directory:", err)
+        return
+    }
+	fmt.Println(dir) // Print the current working directory
+}
+
+// handleType determines how a command would be interpreted and prints the result.
 func handleType(args []string) {
 	if len(args) == 0 {
         fmt.Println("type: missing argument")
@@ -86,7 +102,7 @@ func handleType(args []string) {
             continue
         }
 		
-        // Check if it's an executable in PATH
+        // Check if it's an executable in PATH.
         path, found := findExecutable(arg)
         if found {
             fmt.Printf("%s is %s\n", arg, path)
@@ -119,12 +135,12 @@ func executeExternalCommand(cmdName string, args []string) error {
 
     cmd := exec.Command(cmdPath, args...) // Create command with path and arguments
 
-    // Capture output from the command
+    // Capture output from the command.
     output, err := cmd.Output()
     if err != nil {
         return fmt.Errorf("error executing command: %v", err)
     }
 
-    fmt.Print(string(output)) // Print the output of the command
+    fmt.Print(string(output)) // Print the output of the command.
     return nil
 }
