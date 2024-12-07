@@ -96,7 +96,7 @@ func parseCommand(input string) (string, []string) {
 				currentArg.WriteRune(char) // Add literal backslash
 				escaped = false
 			} else {
-				escaped = true // Mark that the next character should be escaped
+				escaped = true // Mark that the next character should be treated literally
 			}
 		case '\'':
 			if escaped {
@@ -128,29 +128,28 @@ func parseCommand(input string) (string, []string) {
 			}
 		default:
 			if escaped {
-				currentArg.WriteRune('\\') // If there's an escape, add it literally before the current character.
+				currentArg.WriteRune('\\') // Write the backslash literally before the current character.
 			}
-			currentArg.WriteRune(char) // Add regular character
-			escaped = false // Reset escape state after using it
+			currentArg.WriteRune(char) // Add regular character.
+			escaped = false // Reset escape state after using it.
 		}
 	}
 
-	if escaped { // Handle any leftover escape character at the end of input
+	if escaped { // Handle any leftover escape character at the end of input.
 		currentArg.WriteRune('\\')
 	}
 
-	if currentArg.Len() > 0 { // Add last argument if exists
+	if currentArg.Len() > 0 { // Add last argument if exists.
 		args = append(args, currentArg.String())
 	}
 
 	if len(args) > 0 {
 		cmdName = args[0]
-		args = args[1:] // Remove command name from arguments
+		args = args[1:] // Remove command name from arguments.
 	}
 
 	return cmdName, args
 }
-
 
 
 // handleEcho prints the provided arguments as a single string.
