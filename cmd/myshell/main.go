@@ -153,7 +153,6 @@ func parseCommand(input string) (string, []string) {
 
 
 
-
 // handleEcho prints the provided arguments as a single string.
 func handleEcho(args []string) {
 	var output strings.Builder
