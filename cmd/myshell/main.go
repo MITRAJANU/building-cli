@@ -104,6 +104,16 @@ func handleCd(args []string) {
 
     path := args[0]
 
+    // Check for home directory shortcut (~)
+    if path == "~" {
+        homeDir := os.Getenv("HOME") // Get user's home directory from environment variable.
+        if homeDir == "" {
+            fmt.Println("cd: HOME not set")
+            return
+        }
+        path = homeDir // Use home directory path.
+    }
+
     // Change to the specified directory.
     if err := os.Chdir(path); err != nil {
         fmt.Printf("cd: %s: No such file or directory\n", path)
