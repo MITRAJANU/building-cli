@@ -35,6 +35,14 @@ func main() {
 		args := strings.Fields(command)
 		cmdName := args[0]
 
+		if cmdName == "exit" {
+			exitCode := 0 // Default exit code
+			if len(args) > 1 {
+				fmt.Sscanf(args[1], "%d", &exitCode) // Get exit code if provided
+			}
+			os.Exit(exitCode) // Exit with the specified code
+		}
+
 		// Execute the command and handle errors
 		if err := executeCommand(cmdName, args[1:]); err != nil {
 			fmt.Printf("%s: %s\n", cmdName, err.Error())
