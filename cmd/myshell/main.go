@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -82,18 +83,42 @@ func handleType(args []string) {
 	for _, arg := range args {
 		if desc, exists := builtins[arg]; exists {
 			fmt.Printf("%s %s\n", arg, desc)
-		} else {
-			fmt.Printf("%s: not found\n", arg)
+			continue
 		}
-	}
+		
+        // Check if it's an executable in PATH
+        path, found := findExecutable(arg)
+        if found {
+            fmt.Printf("%s is %s\n", arg, path)
+        } else {
+            fmt.Printf("%s: not found\n", arg)
+        }
+    }
 }
 
-// executeCommand runs the specified command with arguments and returns an error if it fails
+// findExecutable searches for an executable in the directories listed in PATH.
+func findExecutable(cmd string) (string, bool) {
+	pathEnv := os.Getenv("PATH")
+	directories := strings.Split(pathEnv, ":")
+
+	for _, dir := range directories {
+        // Construct full path for the executable
+        fullPath := filepath.Join(dir, cmd)
+        
+        // Check if it exists and is executable
+        if _, err := os.Stat(fullPath); err == nil {
+            return fullPath, true // Found executable
+        }
+    }
+    return "", false // Not found
+}
+
+// executeCommand runs the specified command with arguments and returns an error if it fails.
 func executeCommand(cmdName string, args []string) error {
 	cmd := exec.Command(cmdName, args...)
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("command not found")
-	}
-	return nil
+	    return fmt.Errorf("command not found")
+    }
+    return nil
 }
