@@ -43,11 +43,21 @@ func main() {
 			os.Exit(exitCode) // Exit with the specified code
 		}
 
-		// Execute the command and handle errors
+		if cmdName == "echo" {
+			handleEcho(args[1:]) // Handle echo command
+			continue
+		}
+
+		// Execute other commands and handle errors
 		if err := executeCommand(cmdName, args[1:]); err != nil {
 			fmt.Printf("%s: %s\n", cmdName, err.Error())
 		}
 	}
+}
+
+// handleEcho prints the provided arguments as a single string
+func handleEcho(args []string) {
+	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print
 }
 
 // executeCommand runs the specified command with arguments and returns an error if it fails
