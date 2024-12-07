@@ -96,14 +96,14 @@ func parseCommand(input string) (string, []string) {
 				currentArg.WriteRune(char) // Add literal backslash
 				escaped = false
 			} else {
-				escaped = true // Escape the next character
+				escaped = true // Mark the next character to be escaped
 			}
 		case '\'':
 			if escaped {
 				currentArg.WriteRune(char) // Add literal single quote
 				escaped = false
 			} else if inDoubleQuote {
-				currentArg.WriteRune(char) // Add literal single quote in double quotes
+				currentArg.WriteRune(char) // Add literal single quote inside double quotes
 			} else {
 				inSingleQuote = !inSingleQuote // Toggle single-quote state
 			}
@@ -112,7 +112,7 @@ func parseCommand(input string) (string, []string) {
 				currentArg.WriteRune(char) // Add literal double quote
 				escaped = false
 			} else if inSingleQuote {
-				currentArg.WriteRune(char) // Add literal double quote in single quotes
+				currentArg.WriteRune(char) // Add literal double quote inside single quotes
 			} else {
 				inDoubleQuote = !inDoubleQuote // Toggle double-quote state
 			}
@@ -127,9 +127,17 @@ func parseCommand(input string) (string, []string) {
 				}
 			}
 		default:
+			if escaped {
+				currentArg.WriteRune('\\') // Add the preceding backslash literally
+			}
 			currentArg.WriteRune(char) // Add regular character
 			escaped = false
 		}
+	}
+
+	// Handle any leftover escape character
+	if escaped {
+		currentArg.WriteRune('\\')
 	}
 
 	if currentArg.Len() > 0 { // Add last argument if it exists
@@ -143,6 +151,7 @@ func parseCommand(input string) (string, []string) {
 
 	return cmdName, args
 }
+
 
 
 
