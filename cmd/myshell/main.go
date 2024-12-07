@@ -18,6 +18,7 @@ var builtins = map[string]string{
 	"exit": "is a shell builtin",
 	"type": "is a shell builtin",
 	"pwd":  "is a shell builtin",
+	"cd":   "is a shell builtin",
 }
 
 func main() {
@@ -62,31 +63,51 @@ func main() {
             continue
         }
 
+        if cmdName == "cd" {
+            handleCd(args[1:]) // Handle cd command
+            continue
+        }
+
         if cmdName == "type" {
             handleType(args[1:]) // Handle type command
             continue
         }
 
-        // Execute external commands and handle errors
+        // Execute external commands and handle errors.
         if err := executeExternalCommand(cmdName, args[1:]); err != nil {
             fmt.Printf("%s: %s\n", cmdName, err.Error())
         }
     }
 }
 
-// handleEcho prints the provided arguments as a single string
+// handleEcho prints the provided arguments as a single string.
 func handleEcho(args []string) {
-	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print
+	fmt.Println(strings.Join(args, " ")) // Join arguments with space and print.
 }
 
 // handlePwd prints the current working directory.
 func handlePwd() {
-	dir, err := os.Getwd() // Get current working directory
+	dir, err := os.Getwd() // Get current working directory.
 	if err != nil {
         fmt.Fprintln(os.Stderr, "Error getting current directory:", err)
         return
     }
-	fmt.Println(dir) // Print the current working directory
+	fmt.Println(dir) // Print the current working directory.
+}
+
+// handleCd changes the current working directory.
+func handleCd(args []string) {
+	if len(args) != 1 {
+        fmt.Println("cd: too many arguments")
+        return
+    }
+
+    path := args[0]
+
+    // Change to the specified directory.
+    if err := os.Chdir(path); err != nil {
+        fmt.Printf("cd: %s: No such file or directory\n", path)
+    }
 }
 
 // handleType determines how a command would be interpreted and prints the result.
@@ -120,10 +141,10 @@ func findExecutable(cmd string) (string, bool) {
     for _, dir := range directories {
         fullPath := filepath.Join(dir, cmd)
         if _, err := os.Stat(fullPath); err == nil {
-            return fullPath, true // Found executable
+            return fullPath, true // Found executable.
         }
     }
-    return "", false // Not found
+    return "", false // Not found.
 }
 
 // executeExternalCommand runs an external command with arguments and captures its output.
@@ -133,7 +154,7 @@ func executeExternalCommand(cmdName string, args []string) error {
         return fmt.Errorf("command not found")
     }
 
-    cmd := exec.Command(cmdPath, args...) // Create command with path and arguments
+    cmd := exec.Command(cmdPath, args...) // Create command with path and arguments.
 
     // Capture output from the command.
     output, err := cmd.Output()
